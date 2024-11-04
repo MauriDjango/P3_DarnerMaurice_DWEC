@@ -370,14 +370,17 @@ html, body {
 
 /* Modifications for scrollable content */
 .tab-content {
-  padding: 20px;
-  display: none; /* Hide all by default */
+  padding: 20px 16px; /* Padding on left and right for breathing room */
+  display: flex; /* Use flexbox layout */
   overflow-x: auto; /* Enable horizontal scrolling */
-  white-space: nowrap; /* Prevent line breaks */
+  white-space: nowrap; /* Prevent wrapping of child elements */
+  gap: 16px; /* Space between cards */
+  scroll-padding-left: 16px; /* Ensures the first card is fully visible when scrolled */
+  margin-bottom: 24px;
 }
 
 .tab-content.active {
-  display: block; /* Show the active tab content */
+  display: flex; /* Show the active tab content */
 }
 
 .location {
