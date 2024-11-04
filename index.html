@@ -52,9 +52,9 @@
             <div id="resultado" class="resultado">
               <div id="tab-container">
                 <div class="tabs">
-                  <button class="tab-button active" id="hourly-button">Hourly</button>
+                  <button class="tab-button active" id="current-button">Current</button>
+                  <button class="tab-button" id="hourly-button">Hourly</button>
                   <button class="tab-button" id='daily-button'>Daily</button>
-                  <button class="tab-button" id="current-button">Current</button>
                 </div>
               </div>
             </div>
@@ -62,9 +62,9 @@
         </form>
       </div>
         <div id="location" class="location"></div>
-        <div class="tab-content active" id="hourly-content" style="display:none"></div>
+        <div class="tab-content active" id="current-content" style="display:flex"></div>
+        <div class="tab-content" id="hourly-content" style="display:none"></div>
         <div class="tab-content" id="daily-content" style="display:none"></div>
-        <div class="tab-content" id="current-content" style="display:flex"></div>
     </div>
      <script src="js/app.js" type="module"></script>
     <script src="js/api/googleMaps/map.js" type="module"></script>

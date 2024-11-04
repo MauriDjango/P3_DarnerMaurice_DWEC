@@ -372,9 +372,15 @@ html, body {
   padding: 20px;
   display: none; /* Hide all by default */
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .tab-content.active {
   display: block; /* Show the active tab content */
+}
+
+.location {
+  display: flex;
+  justify-content: center;
 }
 

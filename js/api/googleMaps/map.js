@@ -69,7 +69,7 @@ marker = initMap();
 
 console.log(marker)
 
-function deleteMarker() {
+export function deleteMarker() {
     marker.position = null
 }
 

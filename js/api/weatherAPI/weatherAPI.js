@@ -1,58 +1,29 @@
-// Built-in API request by city name
-const apiKey = '5adb233bac1c83264fd348bdd4813cfb'
-const hoursLeftInDay = () => {
-  const now = new Date(); // Current date and time
-  const endOfDay = new Date(now); // Copy current date
-  endOfDay.setHours(23, 59, 59, 999); // Set time to 11:59:59 PM
 
-  const millisecondsLeft = endOfDay - now; // Calculate the difference in milliseconds
-   // Convert to hours
-  return Math.floor(millisecondsLeft / (1000 * 60 * 60));
-}
-const dayCount = 7
-const weekCount = 7
+
+const apiKey = '5adb233bac1c83264fd348bdd4813cfb'
+
+// API URLS --------------------------------------------------------------------
+
 const getLatLngURL = (city, country) => {
   return `https://api.openweathermap.org/geo/1.0/direct?q=${city},${country}&limit=1&appid=${apiKey}`
 }
+
 const getCityCountryURL = (lat, lng) => {
   return `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lng}&limit=1&appid=${apiKey}`
 }
+
 const getWeatherURL = (lat, lng) => {
   return `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`
 }
 
 // API Calls -------------------------------------------------------------------
 
-export function fetchCurrentWeatherByLatLng(lat, lng) {
+export function fetchWeatherByLatLng(lat, lng) {
   return fetch(getWeatherURL(lat, lng)).then(r => {
     return r.json()
   })
   .then(data => {
     return data
-  })
-  .catch(err => {
-    console.error(err)
-  })
-}
-
-export function fetchHourlyWeatherByLatLng(lat, lng) {
-  return fetch(getWeatherURL(lat, lng)).then(r => {
-    return r.json()
-  })
-  .then(data => {
-    return data.hourly
-  })
-  .catch(err => {
-    console.error(err)
-  })
-}
-
-export function fetchDailyWeatherByLatLng(lat, lng) {
-  return fetch(getWeatherURL(lat, lng)).then(r => {
-    return r.json()
-  })
-  .then(data => {
-    return data.daily
   })
   .catch(err => {
     console.error(err)
@@ -73,6 +44,23 @@ export async function getCityCountryFromLatLng(lat, lng) {
   }
 }
 
+export async function getLatLong(city, country) {
+  const response = await fetch(getLatLngURL(city, country));
+
+  if (!response.ok) {
+    throw new Error('Error fetching location data');
+  }
+
+  const data = await response.json();
+  if (data.length === 0) {
+    throw new Error('Location not found');
+  }
+
+  return {
+    lat: data[0].lat,
+    lng: data[0].lon
+  }
+}
 // HTML ------------------------------------------------------------------------
 
 export function createWeatherCard(parsedWeatherData) {
@@ -134,7 +122,6 @@ export function createWeatherCard(parsedWeatherData) {
   dateTimeElement.innerText = formattedDateTime; // e.g., "Monday, 15:30"
 
   weatherCard.appendChild(dateTimeElement); // Append the date and time
-  // weatherCard.appendChild(location);
   weatherCard.appendChild(icon);
   weatherCard.appendChild(condition);
   weatherCard.appendChild(temperature);
@@ -144,27 +131,7 @@ export function createWeatherCard(parsedWeatherData) {
   return weatherCard;
 }
 
-
-
 // Utility ---------------------------------------------------------------------
-
-export async function getLatLong(city, country) {
-  const response = await fetch(getLatLngURL(city, country));
-
-  if (!response.ok) {
-    throw new Error('Error fetching location data');
-  }
-
-  const data = await response.json();
-  if (data.length === 0) {
-    throw new Error('Location not found');
-  }
-
-  return {
-    lat: data[0].lat,
-    lng: data[0].lon
-  }
-}
 
 export async function parseWeatherData(view, weatherData) {
   const result = [];
@@ -208,13 +175,4 @@ function getDataList(view, weatherData) {
     console.warn('Invalid focus specified. Defaulting to current data.');
     return [weatherData.current]; // Fallback to current if invalid focus
   }
-}
-
-function getTemperature(temp) {
-  if (temp && temp.day) {
-    return Math.round(temp.day); }
-  else if (temp ) {
-    return Math.round(temp); // Return the 'day' temp from daily weather data
-  }
-  return 0; // Fallback temperature
 }
