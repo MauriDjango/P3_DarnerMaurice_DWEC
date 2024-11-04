@@ -5,7 +5,12 @@ import {
   parseWeatherData,
 } from './api/weatherAPI/weatherAPI.js';
 import { deleteMarker, marker } from './api/googleMaps/map.js'
-import { hoursLeftInDay, validCity } from './utility.js'
+import {
+  createFormAlert,
+  createSpinner,
+  hoursLeftInDay,
+  validCity,
+} from './utility.js'
 import {
   fetchLocation,
 } from './api/geolocation/geolocation.js'
@@ -31,10 +36,10 @@ let latLng = { lat: null, lng: null}
 
 // Event Listeners -------------------------------------------------------------
 
-document.addEventListener('DOMContentLoaded', async (e) => {
+document.addEventListener('DOMContentLoaded', async () => {
   loadEventListeners()
   resetFields()
-  loadLocalWeather()
+  await loadLocalWeather()
 })
 
 function loadEventListeners() {
@@ -131,20 +136,43 @@ function openTab(view) {
   timeTabs[`${view}-button`].classList.add('active');
 }
 
+// Helper Functions for Each View
+async function getHourlyData(rawWeatherData) {
+  const hourlyData = await parseWeatherData('hourly', rawWeatherData);
+  return hourlyData.slice(0, hoursLeftInDay());
+}
+
+async function getDailyData(rawWeatherData) {
+  const dailyData = await parseWeatherData('daily', rawWeatherData);
+  return dailyData.slice(0, dayCount);
+}
+
+async function getCurrentData(rawWeatherData) {
+  return await parseWeatherData('current', rawWeatherData);
+}
+
+// Mapping Object
+const viewDataFetchers = {
+  hourly: getHourlyData,
+  daily: getDailyData,
+  current: getCurrentData,
+};
+
+// Refactored setTabContents Function
 async function setTabContents() {
-  let rawWeatherData = await fetchWeatherByLatLng(latLng.lat, latLng.lng);
+  const rawWeatherData = await fetchWeatherByLatLng(latLng.lat, latLng.lng);
+
   for (const tab of Object.values(timeTabs)) {
     const view = tab.id.split('-')[0];
-    let weatherData;
-    if (view === 'hourly') {
-      weatherData = (await parseWeatherData(view, rawWeatherData)).slice(0, hoursLeftInDay());
-    } else if (view === 'daily') {
-      weatherData = (await parseWeatherData(view, rawWeatherData)).slice(0, dayCount);
-    } else if (view === 'current') {
-      weatherData = await parseWeatherData(view, rawWeatherData);
-    }
-    if (weatherData) {
-      renderTabContent(view, weatherData);
+    const fetchViewData = viewDataFetchers[view]; // Select the appropriate function
+
+    if (fetchViewData) {
+      const weatherData = await fetchViewData(rawWeatherData); // Fetch data using the helper function
+      if (weatherData) {
+        renderTabContent(view, weatherData);
+      }
+    } else {
+      console.warn(`No data fetcher function found for view: ${view}`);
     }
   }
 }
@@ -182,27 +210,4 @@ async function handleSubmit(setTabContents, setTabOnClick, results) {
 
 // Create HTML Elements --------------------------------------------------------
 
-function createFormAlert(message) {
-  const alert = document.createElement('div');
-  alert.classList.add('alert');
-  alert.id = 'form-alert';
-
-  const alertIcon = document.createElement('span');
-  alertIcon.classList.add('alert-icon');
-
-  const alertMessage = document.createElement('p');
-  alertMessage.classList.add('alert-message');
-  alertMessage.innerText = message; // Set the alert message text
-
-  alert.appendChild(alertIcon);
-  alert.appendChild(alertMessage);
-
-  return alert;
-}
-
-function createSpinner() {
-  const spinner = document.createElement('span')
-  spinner.classList.add('loader')
-  return spinner
-}
 

@@ -1,4 +1,3 @@
-// Initialize and add the map
 let map;
 export let marker;
 
@@ -67,15 +66,14 @@ async function initMap() {
 
 marker = initMap();
 
-console.log(marker)
-
-export function deleteMarker() {
-    marker.position = null
-}
-
 function setMarker(lat, lng) {
     marker = new google.maps.marker.AdvancedMarkerElement({
         map,
         position: {lat: lat, lng: lng},
     });
 }
+
+export function deleteMarker() {
+    marker.position = null
+}
+
