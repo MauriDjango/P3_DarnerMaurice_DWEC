@@ -9,27 +9,22 @@ const hoursLeftInDay = () => {
    // Convert to hours
   return Math.floor(millisecondsLeft / (1000 * 60 * 60));
 }
+const dayCount = 7
 const weekCount = 7
-const currentWeatherURL = (lat, lng) => {
-  return `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`
-}
-const hourlyWeatherURL = (lat, lng) => {
-  return `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&cnt=3&appid=${apiKey}`
-}
-const dailyWeatherURL = (lat, lng) => {
-  return `https://api.openweathermap.org/data/2.5/forecast/daily?lat=${lat}&lon=${lng}&cnt=${weekCount}&appid=${apiKey}&units=metric`
-}
 const getLatLngURL = (city, country) => {
   return `https://api.openweathermap.org/geo/1.0/direct?q=${city},${country}&limit=1&appid=${apiKey}`
 }
 const getCityCountryURL = (lat, lng) => {
   return `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lng}&limit=1&appid=${apiKey}`
 }
+const getWeatherURL = (lat, lng) => {
+  return `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`
+}
 
 // API Calls -------------------------------------------------------------------
 
 export function fetchCurrentWeatherByLatLng(lat, lng) {
-  return fetch(currentWeatherURL(lat, lng)).then(r => {
+  return fetch(getWeatherURL(lat, lng)).then(r => {
     return r.json()
   })
   .then(data => {
@@ -41,11 +36,11 @@ export function fetchCurrentWeatherByLatLng(lat, lng) {
 }
 
 export function fetchHourlyWeatherByLatLng(lat, lng) {
-  return fetch(hourlyWeatherURL(lat, lng)).then(r => {
+  return fetch(getWeatherURL(lat, lng)).then(r => {
     return r.json()
   })
   .then(data => {
-    return data
+    return data.hourly
   })
   .catch(err => {
     console.error(err)
@@ -53,11 +48,11 @@ export function fetchHourlyWeatherByLatLng(lat, lng) {
 }
 
 export function fetchDailyWeatherByLatLng(lat, lng) {
-  return fetch(dailyWeatherURL(lat, lng)).then(r => {
+  return fetch(getWeatherURL(lat, lng)).then(r => {
     return r.json()
   })
   .then(data => {
-    return data
+    return data.daily
   })
   .catch(err => {
     console.error(err)
@@ -77,7 +72,6 @@ export async function getCityCountryFromLatLng(lat, lng) {
     throw new Error("Location not found");
   }
 }
-
 
 // HTML ------------------------------------------------------------------------
 
@@ -101,7 +95,26 @@ export function createWeatherCard(parsedWeatherData) {
 
   const temperature = document.createElement('p');
   temperature.classList.add('weather-temp');
-  temperature.innerText = `${parsedWeatherData.main.temp}°C`;
+
+  // Determine if temp is a number or an object and format accordingly
+  const tempData = parsedWeatherData.main.temp;
+
+  if (typeof tempData === 'number') {
+    // For current weather
+    temperature.innerText = `${Math.round(tempData)}°C`;
+  } else if (typeof tempData === 'object' && tempData !== null) {
+    // For daily weather (assume temp is an object)
+    const nightTemp = Math.round(tempData.night) || 0; // Night temperature
+    const eveTemp = Math.round(tempData.eve) || 0; // Evening temperature
+    const mornTemp = Math.round(tempData.morn) || 0; // Morning temperature
+
+    temperature.innerText = `Morning: ${mornTemp}°C
+     Evening: ${eveTemp}°C
+     Night: ${nightTemp}°C
+     `;
+  } else {
+    temperature.innerText = 'Temperature data not available'; // Fallback message
+  }
 
   const humidity = document.createElement('p');
   humidity.classList.add('weather-humidity');
@@ -111,7 +124,17 @@ export function createWeatherCard(parsedWeatherData) {
   wind.classList.add('weather-wind');
   wind.innerText = `Wind: ${parsedWeatherData.wind.speed} km/h`;
 
-  weatherCard.appendChild(location);
+  // Convert UNIX timestamp to a human-readable format
+  const dateTime = new Date(parsedWeatherData.dateTime * 1000); // Multiply by 1000 to convert to milliseconds
+  const options = { weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false };
+  const formattedDateTime = dateTime.toLocaleString('en-US', options);
+
+  const dateTimeElement = document.createElement('p');
+  dateTimeElement.classList.add('weather-date-time');
+  dateTimeElement.innerText = formattedDateTime; // e.g., "Monday, 15:30"
+
+  weatherCard.appendChild(dateTimeElement); // Append the date and time
+  // weatherCard.appendChild(location);
   weatherCard.appendChild(icon);
   weatherCard.appendChild(condition);
   weatherCard.appendChild(temperature);
@@ -120,6 +143,8 @@ export function createWeatherCard(parsedWeatherData) {
 
   return weatherCard;
 }
+
+
 
 // Utility ---------------------------------------------------------------------
 
@@ -141,52 +166,55 @@ export async function getLatLong(city, country) {
   }
 }
 
-export function parseWeatherData(weatherData) {
+export async function parseWeatherData(view, weatherData) {
   const result = [];
-  const dataList = weatherData.list || [weatherData];
+  const { city, country } = await getCityCountryFromLatLng(weatherData.lat, weatherData.lon);
+  console.log('parseWeatherData weatherData', weatherData, view);
 
-  console.log('paresWeatherData', weatherData)
+  // Get the dataList based on the view
+  const dataList = getDataList(view, weatherData);
 
-  dataList.forEach((entry) => {
-    result.push({
-      name: weatherData.city?.name || entry.name,
-      country: weatherData.city?.country || entry.sys.country,
-      weather: {
-        main: entry.weather[0].main,
-        description: entry.weather[0].description,
-        icon: entry.weather[0].icon,
-      },
-      main: {
-        temp: entry.main.temp,
-        humidity: entry.main.humidity,
-      },
-      wind: {
-        speed: entry.wind.speed,
-      },
-      dateTime: entry.dt,
-    });
-  });
+  console.log('parseWeatherData dataList', dataList);
 
-  return result;
-}
-
-
-export function parseHourlyWeatherData(weatherData) {
-  return weatherData.list.map((entry) => ({
-    name: weatherData.city.name,
-    country: weatherData.city.country,
+  // Map over dataList to create the result array
+  return dataList.map((entry) => ({
+    name: city,
+    country: country,
     weather: {
-      main: entry.weather[0].main,
-      description: entry.weather[0].description,
-      icon: entry.weather[0].icon
+      description: entry.weather?.[0]?.description || 'No description available',
+      main: entry.weather?.[0]?.main || 'N/A',
+      icon: entry.weather?.[0]?.icon || '01d', // Default icon if not available
     },
     main: {
-      temp: entry.main.temp,
-      humidity: entry.main.humidity
+      temp: entry.temp, // Use helper function to get temperature
+      humidity: entry.humidity || entry.main?.humidity || 0, // Access humidity
     },
     wind: {
-      speed: entry.wind.speed
+      speed: entry.wind_speed || entry.wind?.speed || 0, // Access wind speed
     },
-    dateTime: entry.dt
-  }))
+    dateTime: entry.dt,
+  }));
+}
+
+// Helper function to get the correct dataList based on view
+function getDataList(view, weatherData) {
+  if (view === 'current') {
+    return [weatherData.current]; // Focus on current weather data
+  } else if (view === 'hourly') {
+    return weatherData.hourly; // Focus on hourly weather data
+  } else if (view === 'daily') {
+    return weatherData.daily; // Focus on daily weather data
+  } else {
+    console.warn('Invalid focus specified. Defaulting to current data.');
+    return [weatherData.current]; // Fallback to current if invalid focus
+  }
+}
+
+function getTemperature(temp) {
+  if (temp && temp.day) {
+    return Math.round(temp.day); }
+  else if (temp ) {
+    return Math.round(temp); // Return the 'day' temp from daily weather data
+  }
+  return 0; // Fallback temperature
 }

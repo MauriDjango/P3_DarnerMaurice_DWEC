@@ -270,8 +270,8 @@ html {
 }
 
 .weather-temp {
-  font-size: 1.5em;
-  font-weight: bold;
+  font-size: 1em;
+  font-weight: 300;
   margin-bottom: 5px;
 }
 
@@ -285,6 +285,7 @@ html {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .loader {
@@ -370,6 +371,7 @@ html, body {
 .tab-content {
   padding: 20px;
   display: none; /* Hide all by default */
+  flex-wrap: wrap;
 }
 
 .tab-content.active {

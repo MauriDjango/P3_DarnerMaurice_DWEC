@@ -9,11 +9,18 @@ import {
 import {marker} from './api/googleMaps/map.js';
 import {validCity} from './utility.js';
 
+const location = document.querySelector('#location');
 const results = document.querySelector('#resultado')
 const cityInput = document.querySelector('#ciudad')
 const countrySelect = document.querySelector('#pais')
 const container =  document.querySelector('.container')
 const form = document.querySelector('#formulario')
+const hoursLeftInDay = () => {
+  const now = new Date(); // Get the current date and time
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); // Set the time to midnight of the next day
+  const hoursLeft = (midnight - now) / (1000 * 60 * 60); // Calculate the difference in hours
+  return Math.ceil(hoursLeft); // Return the number of hours left
+};
 const tabContents = Array.from(document.querySelectorAll('.tab-content')).reduce((acc, el) => {
   acc[el.id] = el;
   return acc;
@@ -74,13 +81,6 @@ function loadEventListeners() {
       await handleWeatherFetch()
     }
   });
-
-  /*mapSubmit.addEventListener('click', async () => {
-    latLng = {
-      lat: marker.No.lat(),
-      lng: marker.No.lng()
-    };
-  })*/
 }
 
 // Create HTML Elements --------------------------------------------------------
@@ -112,11 +112,11 @@ function createSpinner() {
 
 // Manipulate HTML Element -----------------------------------------------------
 
-function handleLoad(loading, parent) {
+function handleLoad(loading, mainFunc, parent) {
   parent.appendChild(loading)
   setTimeout(() => {
     parent.removeChild(loading)
-    setTabs()
+    mainFunc()
   }, 1000)
 }
 
@@ -143,16 +143,6 @@ function resetFields() {
   searchData.country = ''
 }
 
-function loadSpinner() {
-  const spinner = createSpinner()
-  container.appendChild(spinner)
-
-  setTimeout(() => {
-    const spinnerElement = document.querySelector('.loader')
-    spinnerElement.parentNode.removeChild(spinnerElement)
-  }, 1000)
-}
-
 function openTab(view) {
   for (const tab of Object.values(tabContents)) {
   tab.style.display = 'none'
@@ -165,39 +155,24 @@ function openTab(view) {
   timeTabs[`${view}-button`].classList.add('active');
 }
 
-function setTabContent(view, weatherData) {
-  const container = tabContents[`${view}-content`]
-  console.log('setTabContent', view, weatherData)
-  weatherData.forEach((data) => {
-    container.appendChild(createWeatherCard(data))
-  })
-}
-
-function setTabs() {
-  console.log('setTabs', )
+async function setTabs () {
   let weatherData = null
+  let rawWeatherData = await fetchCurrentWeatherByLatLng(latLng.lat, latLng.lng)
+
   for (const tab of Object.values(timeTabs)) {
     tab.addEventListener('click', async (e) => {
       const view = e.target.id.split('-')[0]
       switch (view) {
         case 'hourly':
-          weatherData = parseWeatherData(
-              await fetchHourlyWeatherByLatLng(latLng.lat, latLng.lng)
-          )
-
+          weatherData = (await parseWeatherData(view, rawWeatherData)).slice(0, hoursLeftInDay())
           setTabContent(view, weatherData)
           break
         case 'daily':
-          weatherData = parseWeatherData(
-              await fetchDailyWeatherByLatLng(latLng.lat, latLng.lng)
-          )
-
+          weatherData = (await parseWeatherData(view, rawWeatherData)).slice(0, 7)
           setTabContent(view, weatherData)
           break
         case 'current':
-          weatherData = parseWeatherData(
-              await fetchCurrentWeatherByLatLng(latLng.lat, latLng.lng)
-          )
+          weatherData = await parseWeatherData(view, rawWeatherData)
           setTabContent(view, weatherData)
           break
       }
@@ -206,21 +181,24 @@ function setTabs() {
   }
 }
 
+function setTabContent(view, weatherData) {
+  const container = tabContents[`${view}-content`]
+  container.innerHTML = ''; // Clear existing content
+  weatherData.forEach((data) => {
+    container.appendChild(createWeatherCard(data))
+  })
+}
+
 // Event Handlers --------------------------------------------------------------
 
 async function handleWeatherFetch() {
   try {
-    console.log('handleWeatherFetch', latLng.lat, latLng.lng)
-
-    /*if (weatherData.cod === "404") {
-      formAlert(weatherData.message);
-    } else {*/
-      cleanWeatherCard();
-      handleLoad(
-          createSpinner(),
-          results
-      );
-    // }
+    cleanWeatherCard();
+    handleLoad(
+        createSpinner(),
+        setTabs,
+        results
+    );
   } catch (error) {
     console.error(error);
     formAlert('Error retrieving weather data');
