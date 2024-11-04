@@ -368,11 +368,12 @@ html, body {
   background-color: #e0e0e0;
 }
 
+/* Modifications for scrollable content */
 .tab-content {
   padding: 20px;
   display: none; /* Hide all by default */
-  flex-wrap: wrap;
-  justify-content: center;
+  overflow-x: auto; /* Enable horizontal scrolling */
+  white-space: nowrap; /* Prevent line breaks */
 }
 
 .tab-content.active {
@@ -383,4 +384,5 @@ html, body {
   display: flex;
   justify-content: center;
 }
+
 
