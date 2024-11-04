@@ -6,6 +6,9 @@ import {
 } from './api/weatherAPI/weatherAPI.js';
 import { deleteMarker, marker } from './api/googleMaps/map.js'
 import { hoursLeftInDay, validCity } from './utility.js'
+import {
+  fetchLocation,
+} from './api/geolocation/geolocation.js'
 
 
 const location = document.querySelector('#location');
@@ -28,9 +31,10 @@ let latLng = { lat: null, lng: null}
 
 // Event Listeners -------------------------------------------------------------
 
-document.addEventListener('DOMContentLoaded', (e) => {
+document.addEventListener('DOMContentLoaded', async (e) => {
   loadEventListeners()
   resetFields()
+  loadLocalWeather()
 })
 
 function loadEventListeners() {
@@ -68,6 +72,15 @@ function loadEventListeners() {
 }
 
 // Manipulate HTML Element -----------------------------------------------------
+
+async function loadLocalWeather () {
+  const spinner = createSpinner();
+  results.appendChild(spinner)
+  latLng = await fetchLocation()
+  results.removeChild(spinner)
+
+  await handleSubmit(setTabContents, setTabOnClick, results);
+}
 
 function formAlert(message) {
   const alert = createFormAlert(message); // Pass message to createFormAlert
