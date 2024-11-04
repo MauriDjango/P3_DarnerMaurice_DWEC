@@ -1,9 +1,7 @@
 import {
   createWeatherCard,
-  fetchHourlyWeatherByLatLng,
   fetchWeatherByLatLng,
   getLatLong,
-  fetchDailyWeatherByLatLng,
   parseWeatherData,
 } from './api/weatherAPI/weatherAPI.js';
 import { deleteMarker, marker } from './api/googleMaps/map.js'
